@@ -1,0 +1,56 @@
+source: stg_customers is duckdb.table('raw_customers.csv') extend {
+    rename:customer_id is id
+    primary_key: customer_id
+}
+
+source: stg_orders is duckdb.table('raw_orders.csv') extend {
+    rename:
+      order_id is id
+      customer_id is user_id
+    primary_key: order_id
+
+}
+source: stg_payments is duckdb.table('raw_payments.csv') extend {
+    rename: payment_id is id
+    primary_key: payment_id
+    dimension: amount_in_dollars is amount / 100
+
+}
+
+source: orders_with_customers_and_payments is stg_payments extend {
+  dimension: 
+    full_name is concat(stg_customers.first_name, ' ', stg_customers.last_name  )
+  measure: 
+    first_order is min(stg_orders.order_date)
+    most_recent_orders is max(stg_orders.order_date)
+    number_of_orders is count(stg_orders.order_id)
+    total_amount_in_dollars is sum(amount_in_dollars)
+
+
+  join_one: stg_orders with order_id
+  join_one: stg_customers with stg_orders.customer_id
+
+view: customers is {
+    group_by:
+      full_name
+    aggregate:
+      first_order
+      most_recent_orders
+      number_of_orders
+      customer_lifetime_value is total_amount_in_dollars
+    order_by: customer_lifetime_value desc
+}
+
+view: orders is {
+    group_by:
+      order_id
+      stg_customers.customer_id
+      stg_orders.order_date
+    nest: payment_method_type is {
+        group_by: method is payment_method
+        aggregate: amount is total_amount_in_dollars
+    }
+    aggregate: total_sum is total_amount_in_dollars
+}
+}
+
