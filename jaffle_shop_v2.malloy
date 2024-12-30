@@ -13,13 +13,17 @@ source: payments is duckdb.table('raw_payments.csv') extend {
 }
 
 source: final is payments extend {
-    dimension: full_name is concat(orders.customers.first_name, ' ', orders.customers.last_name)
+    dimension: 
+    full_name is concat(orders.customers.first_name, ' ', orders.customers.last_name)
+    amount_in_dollars is amount / 100
     measure: 
       first_order is min(orders.order_date)
       most_recent_order is max(orders.order_date)
       number_of_orders is count(orders.id)
-      total_amount is amount.sum() / 100
-      customer_lifetime_value is (amount.sum() / 100) {where: orders.status != 'return_pending' and orders.status != 'returned' } 
+      # currency
+      total_amount is amount_in_dollars.sum()
+      # currency
+      customer_lifetime_value is total_amount {where: orders.status != 'return_pending' and orders.status != 'returned' } 
 
 view: customer_view is {
     group_by: 
@@ -38,6 +42,7 @@ view: order_view is {
     order_id is orders.id
     full_name
     orders.order_date
+    # list_detail
     nest: payment_method_type is {
         group_by: method is payment_method
         aggregate: amount is total_amount
@@ -52,3 +57,13 @@ view: order_status_view is {
 
     }
 }
+
+run: final -> {
+where:
+		orders.status = "returned"
+} + { select: * }
+
+run: final -> {
+where:
+		orders.status = "return_pending"
+} + { select: * }
