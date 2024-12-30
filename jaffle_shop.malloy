@@ -19,7 +19,7 @@ source: stg_payments is duckdb.table('raw_payments.csv') extend {
 
 source: orders_with_customers_and_payments is stg_payments extend {
   dimension: 
-    full_name is concat(stg_customers.first_name, ' ', stg_customers.last_name  )
+    full_name is concat(stg_customers.first_name, ' ', stg_customers.last_name)
   measure: 
     first_order is min(stg_orders.order_date)
     most_recent_order is max(stg_orders.order_date)
