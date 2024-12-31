@@ -1,5 +1,7 @@
 source: customers is duckdb.table('raw_customers.csv') extend {
     primary_key: id
+    dimension: full_name is concat(first_name, ' ', last_name)
+      
 }
 
 source: orders is duckdb.table('raw_orders.csv') extend {
@@ -8,27 +10,25 @@ source: orders is duckdb.table('raw_orders.csv') extend {
 }
 
 source: payments is duckdb.table('raw_payments.csv') extend {
-    primary_key: id   
+    primary_key: id
+    dimension: amount_dollars is amount / 100   
     join_one: orders with order_id
 }
 
 source: final is payments extend {
-    dimension: 
-    full_name is concat(orders.customers.first_name, ' ', orders.customers.last_name)
-    amount_in_dollars is amount / 100
-    measure: 
+  measure: 
       first_order is min(orders.order_date)
       most_recent_order is max(orders.order_date)
       number_of_orders is count(orders.id)
       # currency
-      total_amount is amount_in_dollars.sum()
+      total_amount is amount_dollars.sum()
       # currency
       customer_lifetime_value is total_amount {where: orders.status != 'return_pending' and orders.status != 'returned' } 
 
 view: customer_view is {
     group_by: 
       orders.customers.id
-      full_name
+      orders.customers.full_name --< full_name problem here
     aggregate: 
       first_order
       most_recent_order
@@ -40,8 +40,8 @@ view: customer_view is {
 view: order_view is {
     group_by: 
     order_id is orders.id
-    full_name
-    orders.order_date
+    name is orders.customers.full_name
+    order_date is orders.order_date
     # list_detail
     nest: payment_method_type is {
         group_by: method is payment_method
@@ -49,21 +49,11 @@ view: order_view is {
     }
     aggregate: total_amount
  }
-view: order_status_view is {
-    group_by: orders.status
-    aggregate: 
-      number_of_orders
-      total_amount
 
-    }
 }
-
+-- here is the result when i copy the query to clipboard from the htm preview
 run: final -> {
 where:
-		orders.status = "returned"
-} + { select: * }
-
-run: final -> {
-where:
-		orders.status = "return_pending"
+		orders.customers.id = 51,
+		concat(first_name, ' ', last_name) = "Howard R."
 } + { select: * }
