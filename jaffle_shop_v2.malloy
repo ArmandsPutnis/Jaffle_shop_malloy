@@ -29,7 +29,7 @@ source: final is payments extend {
 view: customer_view is {
     group_by: 
       orders.customers.id
-      name is orders.customers.full_name --< full_name problem here if i rename to "name is orders.customers.full_name" then it's fine
+      orders.customers.full_name --< full_name problem here if i rename to "name is orders.customers.full_name" then it's fine
     aggregate: 
       first_order
       most_recent_order
