@@ -56,7 +56,7 @@ view: order_view is {
 
 
 -- customer_view orders.customers.full_name original name from source
-/*
+
 run: final -> {
 where:
     orders.customers.id = 51,
