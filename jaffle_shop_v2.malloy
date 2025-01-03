@@ -57,29 +57,4 @@ view: order_view is {
 
 -- customer_view orders.customers.full_name original name from source
 
-run: final -> {
-where:
-    orders.customers.id = 51,
-    concat(first_name, ' ', last_name) = "Howard R." --< this is the problem
-} + { select: * }
-
-
-
--- if i rename name is orders.customers.full_name then it's fine
-
-run: final -> {
-where:
-		orders.customers.id = 51,
-		orders.customers.full_name = "Howard R." --< this is fine now
-} + { select: * }
-
-
---also found a problem iwth date
-run: final -> {
-where:
-		orders.id = 99,
-		concat(first_name, ' ', last_name) = "Theresa M.",
-		orders.order_date = "2018-04-09T00:00:00.000Z"
-} + { select: * }
-
 
